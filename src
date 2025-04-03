@@ -1,0 +1,172 @@
+#include <Servo.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Define Sensor, Motor, and Button Pins
+#define TRIG_PIN 2
+#define ECHO_PIN 13
+#define IR_SENSOR A0
+#define BUTTON_PIN 12  // Push button
+
+#define IN1 12  
+#define IN2 11  
+#define IN3 5  
+#define IN4 7  
+
+#define ENA 6  
+#define ENB 3  
+
+#define DISTANCE_THRESHOLD 30
+#define OBJECT_DETECTION_LIMIT 15
+
+Servo myServo;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+bool botActive = false; // Flag to check if the bot is started
+
+void setup() {
+  Serial.begin(9600);
+
+  // Initialize Pins
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(IR_SENSOR, INPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);  // Enable internal pull-up
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  myServo.attach(9);
+  myServo.write(90); 
+
+  lcd.begin(16, 2);
+  lcd.backlight();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Press Button to");
+  lcd.setCursor(0, 1);
+  lcd.print("Start The Bot");
+}
+
+long getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  return (duration * 0.034) / 2;
+}
+
+void moveForward() {
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
+
+void turnLeft() {
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  delay(600);
+  stopMotors();
+}
+
+void turnRight() {
+  analogWrite(ENA, 150);
+  analogWrite(ENB, 150);
+
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  delay(600);
+  stopMotors();
+}
+
+void displayMessage(String line1, String line2) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(line1);
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
+}
+
+void loop() {
+  if (!botActive) {
+    if (digitalRead(BUTTON_PIN) == LOW) {  // Button Pressed
+      botActive = true;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("The ElectroStorm");
+      lcd.setCursor(0, 1);
+      lcd.print("Bot is Ready!");
+      delay(2000);
+    }
+    return;  // Wait until the button is pressed
+  }
+
+  int irValue = digitalRead(IR_SENSOR);
+  long frontDistance = getDistance();
+
+  Serial.print("IR: ");
+  Serial.println(irValue);
+  Serial.print("Distance: ");
+  Serial.println(frontDistance);
+
+  if (irValue == 0) {
+    Serial.println("Black detected, stopping.");
+    displayMessage("Black Line!", "Scanning...");
+    stopMotors();
+
+    myServo.write(45);
+    delay(500);
+    long leftDistance = getDistance();
+
+    myServo.write(135);
+    delay(500);
+    long rightDistance = getDistance();
+
+    if (leftDistance > DISTANCE_THRESHOLD) {
+      displayMessage("Turning Left", "Path Clear");
+      Serial.println("Turning left");
+      turnLeft();
+    } else if (rightDistance > DISTANCE_THRESHOLD) {
+      displayMessage("Turning Right", "Path Clear");
+      Serial.println("Turning right");
+      turnRight();
+    } else {
+      displayMessage("No Path", "Staying Still");
+      Serial.println("No path found, staying.");
+      myServo.write(90);
+    }
+  }
+  else if (frontDistance < OBJECT_DETECTION_LIMIT) {
+    Serial.println("Obstacle detected, scanning...");
+    displayMessage("Obstacle!", "Scanning...");
+    stopMotors();
+
+    myServo.write(45);
+  }
+    delay(500);
+  }
