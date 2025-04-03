@@ -58,9 +58,8 @@ Have an idea to improve ElectroStorm? Feel free to fork, raise issues, or submit
 This project is licensed under the **MIT License**.
 
 ## 📲 Connect with Me
-💼 [LinkedIn](https://www.linkedin.com/in/your-profile/)  
-📂 [GitHub](https://github.com/your-github/)  
-📧 Email: your-email@example.com
+💼 www.linkedin.com/in/abhinandan-srikantha-226970259  
+
 
 ---
 *"Technology moves fast, but innovation moves faster."* 🚀
